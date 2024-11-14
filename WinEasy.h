@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <time.h>
+#include <string.h>
 
 typedef struct {
     int r;
@@ -49,7 +50,10 @@ void WinEasyDrawRect(HDC screen, Color color, RECT rect);
 void WinEasyDrawCircle(HDC screen, Color color, int x, int y, int radius);
 void WinEasyDrawEllipse(HDC screen, Color color, RECT ellipse_rect);
 
-COLORREF WinEasyColorToCOLORREf(Color color);
+void WinEasyDrawText(HDC screen, Color txtColor, char * string, int x, int y);
+
+
+COLORREF WinEasyColorToCOLORREF(Color color);
 HBRUSH WinEasyColorToHBRUSH(Color color);
 
 void WinEasySleepForFrames(float frames, clock_t begTime, clock_t endTime);
@@ -136,7 +140,15 @@ void WinEasyDrawEllipse(HDC screen, Color color, RECT ellipseRect){
     DeleteObject(brush);
 }
 
-COLORREF WinEasyColorToCOLORREf(Color color){
+void WinEasyDrawText(HDC screen, Color txtColor, char *string, int x, int y){
+    SetTextColor(screen, WinEasyColorToCOLORREF(txtColor));
+    SetBkColor(screen, GetBkColor(screen));
+    TextOutA(screen, x, y, string, strlen(string));
+}
+
+
+
+COLORREF WinEasyColorToCOLORREF(Color color){
     return RGB(color.r, color.g, color.b);
 }
 

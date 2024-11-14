@@ -48,6 +48,7 @@ Paddle paddle;
 #define HEIGHT 600
 #define FPS    20
 
+
 WINBOOL game_over = 0;
 
 void InitializeBall(Ball *ball){
@@ -179,10 +180,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             RECT windowRect = {0,0,0,0};
             clock_t beg_time = clock();
             WinEasyStartBackBuffer(&ps, &hwnd, &frontHDC, &backHDC, &backBuffer, &windowRect);
-            WinEasyDrawBackground(backHDC, colors[DARK_GRAY], windowRect);
-
+            SetBkColor(backHDC, WinEasyColorToCOLORREF(colors[DARK_GRAY]));
+            SetTextAlign(backHDC, TA_CENTER);
             if (game_over){
-                WinEasyDrawCircle(backHDC, colors[PINK], WIDTH/2, HEIGHT/2, 10);
+                WinEasyDrawText(backHDC, colors[WHITE], "Game Over", (WIDTH/2), HEIGHT/2);
+                WinEasyDrawText(backHDC, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2)+30);
             }
             else{
                 WinEasyDrawCircle(backHDC, colors[GREEN], ball.pos.x, ball.pos.y, ball.radius);
@@ -227,7 +229,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     HWND hwnd;
     MSG Msg;
     char ClassName[] = "myWindowClass";
-    WinEasyCreateWindowClass(&wc, hInstance, &WndProc, ClassName, (HBRUSH)(COLOR_WINDOW-1));
+    WinEasyCreateWindowClass(&wc, hInstance, &WndProc, ClassName, WinEasyColorToHBRUSH(colors[DARK_GRAY]));
 
     // Step 2: Creating the Window
     WinEasyCreateWindow(&hwnd, "Breakout", ClassName, hInstance, WIDTH, HEIGHT, 500, 200);
