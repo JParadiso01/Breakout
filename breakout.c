@@ -52,11 +52,14 @@ int score = 0;
 
 WINBOOL game_over = 0;
 
+int randRange(int low, int high){
+    return ((rand()%(high-low))+low);
+}
 void InitializeBall(Ball *ball){
-    ball->pos.x   = 100.0;
-    ball->pos.y   = 300.0;
-    ball->speed.x = 0.1;
-    ball->speed.y = 0.1;
+    ball->pos.x   = randRange(100, WIDTH/2);
+    ball->pos.y   = randRange(HEIGHT/2,400);
+    ball->speed.x = 0.2;
+    ball->speed.y = 0.2;
     ball->radius  = 6;
 }
 
@@ -132,6 +135,22 @@ void PrintBricks(Brick brick[MAX_BRICKS]){
     }
 }
 
+void DrawGameOverScreen(HDC screen){
+    WinEasyDrawText(screen, colors[WHITE], "Game Over", (WIDTH/2), HEIGHT/2-30);
+    WinEasyDrawText(screen, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2));
+    char gameOverScoreText[100];
+    sprintf(gameOverScoreText, "Your score was: %d", score);
+    WinEasyDrawText(screen, colors[WHITE], gameOverScoreText, (WIDTH/2), (HEIGHT/2)+30);
+}
+
+void ResetGame(){
+    InitializeBall(&ball);
+    for (int i = 0; i < brick_count; i++){
+        (&bricks[i])->broken = 0;
+    }
+    game_over = 0;
+    score = 0;
+}
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 
@@ -149,9 +168,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 //R
                 case 0x52:
                     if (game_over){
-                        ball.pos.x = 100;
-                        ball.pos.y = 300;
-                        game_over = 0;
+                        ResetGame();
                     }
                 break;
                 //<
@@ -185,11 +202,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             SetBkColor(backHDC, WinEasyColorToCOLORREF(colors[DARK_GRAY]));
             SetTextAlign(backHDC, TA_CENTER);
             if (game_over){
-                WinEasyDrawText(backHDC, colors[WHITE], "Game Over", (WIDTH/2), HEIGHT/2-30);
-                WinEasyDrawText(backHDC, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2));
-                char gameOverScoreText[100];
-                sprintf(gameOverScoreText, "Your score was: %d", score);
-                WinEasyDrawText(backHDC, colors[WHITE], gameOverScoreText, (WIDTH/2), (HEIGHT/2)+30);
+                DrawGameOverScreen(backHDC);
             }
             else{
                 WinEasyDrawCircle(backHDC, colors[GREEN], ball.pos.x, ball.pos.y, ball.radius);
@@ -203,8 +216,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 WinEasyDrawRect(backHDC, colors[BLUE],paddle.rect);
 
                 updateBall(&ball);
+
                 char scoreText[100];
-                sprintf(scoreText, "%d", score);
+                sprintf(scoreText, "Score: %d ", score);
                 SetTextAlign(backHDC, TA_RIGHT);
                 WinEasyDrawText(backHDC, colors[WHITE],scoreText, WIDTH, 0);
             }
@@ -225,6 +239,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+    srand(time(NULL));
     paddle.rect = (RECT){
                     .bottom = HEIGHT - 120,
                     .top = HEIGHT - 100,
