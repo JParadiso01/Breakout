@@ -48,6 +48,7 @@ Paddle paddle;
 #define HEIGHT 600
 #define FPS    20
 
+int score = 0;
 
 WINBOOL game_over = 0;
 
@@ -99,6 +100,7 @@ void updateBall(Ball *ball){
         {
             ball->speed.y *= -1;
             bricks[i].broken = 1;
+            score += 50;
         }
     }
 
@@ -183,8 +185,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             SetBkColor(backHDC, WinEasyColorToCOLORREF(colors[DARK_GRAY]));
             SetTextAlign(backHDC, TA_CENTER);
             if (game_over){
-                WinEasyDrawText(backHDC, colors[WHITE], "Game Over", (WIDTH/2), HEIGHT/2);
-                WinEasyDrawText(backHDC, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2)+30);
+                WinEasyDrawText(backHDC, colors[WHITE], "Game Over", (WIDTH/2), HEIGHT/2-30);
+                WinEasyDrawText(backHDC, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2));
+                char gameOverScoreText[100];
+                sprintf(gameOverScoreText, "Your score was: %d", score);
+                WinEasyDrawText(backHDC, colors[WHITE], gameOverScoreText, (WIDTH/2), (HEIGHT/2)+30);
             }
             else{
                 WinEasyDrawCircle(backHDC, colors[GREEN], ball.pos.x, ball.pos.y, ball.radius);
@@ -198,6 +203,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 WinEasyDrawRect(backHDC, colors[BLUE],paddle.rect);
 
                 updateBall(&ball);
+                char scoreText[100];
+                sprintf(scoreText, "%d", score);
+                SetTextAlign(backHDC, TA_RIGHT);
+                WinEasyDrawText(backHDC, colors[WHITE],scoreText, WIDTH, 0);
             }
 
             WinEasyCopyBackBuffer(frontHDC, backHDC, windowRect);
