@@ -51,6 +51,7 @@ Paddle paddle;
 int score = 0;
 
 WINBOOL game_over = 0;
+WINBOOL game_won  = 0;
 
 int randRange(int low, int high){
     return ((rand()%(high-low))+low);
@@ -58,8 +59,8 @@ int randRange(int low, int high){
 void InitializeBall(Ball *ball){
     ball->pos.x   = randRange(100, WIDTH/2);
     ball->pos.y   = randRange(HEIGHT/2,400);
-    ball->speed.x = 0.2;
-    ball->speed.y = 0.2;
+    ball->speed.x = 0.15;
+    ball->speed.y = 0.15;
     ball->radius  = 6;
 }
 
@@ -90,6 +91,63 @@ void InitializeBricks(Brick bricks[MAX_BRICKS], int rows, int cols){
     }
 }
 
+
+void CheckBrickCollision(Ball *b, Brick *brick){
+    int x   = b->pos.x;
+    int y   = b->pos.y;
+    int rad = b->radius;
+    if ((y >= brick->rect.bottom && y <= brick->rect.top)){
+        if (((x+rad) >= brick->rect.left && (x+rad) <= brick->rect.right)){
+            b->speed.x *= -1;
+            b->pos.x -= 1;
+            brick->broken = 1;
+            score += 50;
+        }
+        if (((x-rad) >= brick->rect.left && (x-rad) <= brick->rect.right)){
+            b->speed.x *= -1;
+            b->pos.x += 1;
+            brick->broken = 1;
+            score += 50;
+        }
+    } 
+     if ((x >= brick->rect.left && x <= brick->rect.right)){
+        if ((y+rad) >= brick->rect.bottom && (y+rad) <= brick->rect.top){
+            b->speed.y *= -1;
+            b->pos.y -= 1;
+            brick->broken = 1;
+            score += 50;
+        }
+        if ((y-rad) >= brick->rect.bottom && (y-rad) <= brick->rect.top){
+            b->speed.y *= -1;
+            b->pos.y += 1;
+            brick->broken = 1;
+            score += 50;
+        }
+    }
+}
+void CheckPaddleCollision(Ball *b, Paddle p){
+    int x   = b->pos.x;
+    int y   = b->pos.y;
+    int rad = b->radius;
+    if ((y >= p.rect.bottom && y <= p.rect.top)){
+        if ((x+rad) >= p.rect.left && (x+rad) <= p.rect.right){
+            b->speed.x *= -1;
+            b->pos.x -= 1;
+        }
+        if ((x-rad) >= p.rect.left && (x-rad) <= p.rect.right){
+            b->speed.x *= -1;
+            b->pos.x += 1;
+        }
+    } 
+
+     if ((x >= p.rect.left && x <= p.rect.right)){
+        if ((y+rad) >= p.rect.bottom && (y+rad) <= p.rect.top){
+            b->speed.y *= -1;
+            b->pos.y -= 1;
+        }
+    }
+
+}
 void updateBall(Ball *ball){
     ball->pos.x += ball->speed.x;
     ball->pos.y += ball->speed.y;
@@ -99,6 +157,10 @@ void updateBall(Ball *ball){
 
     //BRICK CHECK
     for (int i = 0; i < brick_count; i++){
+        if (bricks[i].broken == 0) CheckBrickCollision(ball, &bricks[i]);
+    }
+    /*
+    for (int i = 0; i < brick_count; i++){
         if ((x >= bricks[i].rect.left && x <= bricks[i].rect.right) && (y >= bricks[i].rect.bottom && y <= bricks[i].rect.top) && bricks[i].broken == 0)
         {
             ball->speed.y *= -1;
@@ -106,11 +168,14 @@ void updateBall(Ball *ball){
             score += 50;
         }
     }
-
+    */
     //PADDLE CHECK
+    CheckPaddleCollision(ball, paddle);
+    /*
     if ((x >= paddle.rect.left && x <= paddle.rect.right) && (y >= paddle.rect.bottom && y <= paddle.rect.top)){
         ball->speed.y *= -1;
     }
+    */
 
     //WINDOW BOUNDS
     if(x > WIDTH || x < 0){
@@ -135,6 +200,14 @@ void PrintBricks(Brick brick[MAX_BRICKS]){
     }
 }
 
+void DrawGameWonScreen(HDC screen){
+    WinEasyDrawText(screen, colors[WHITE], "Congratulations! You Won!", (WIDTH/2), HEIGHT/2-30);
+    WinEasyDrawText(screen, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2));
+    char gameOverScoreText[100];
+    sprintf(gameOverScoreText, "Your score was: %d", score);
+    WinEasyDrawText(screen, colors[WHITE], gameOverScoreText, (WIDTH/2), (HEIGHT/2)+30);
+}
+
 void DrawGameOverScreen(HDC screen){
     WinEasyDrawText(screen, colors[WHITE], "Game Over", (WIDTH/2), HEIGHT/2-30);
     WinEasyDrawText(screen, colors[WHITE], "Press R to play again", (WIDTH/2), (HEIGHT/2));
@@ -149,7 +222,14 @@ void ResetGame(){
         (&bricks[i])->broken = 0;
     }
     game_over = 0;
+    game_won = 0;
     score = 0;
+    paddle.rect = (RECT){
+                    .bottom = HEIGHT - 120,
+                    .top = HEIGHT - 100,
+                    .right = WIDTH/2 + 50,
+                    .left = WIDTH/2 - 50 
+    };
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -167,7 +247,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 //R
                 case 0x52:
-                    if (game_over){
+                    if (game_over || game_won){
                         ResetGame();
                     }
                 break;
@@ -197,6 +277,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             HDC frontHDC, backHDC;
             HBITMAP backBuffer;
             RECT windowRect = {0,0,0,0};
+            WINBOOL possible_win = 1;
             clock_t beg_time = clock();
             WinEasyStartBackBuffer(&ps, &hwnd, &frontHDC, &backHDC, &backBuffer, &windowRect);
             SetBkColor(backHDC, WinEasyColorToCOLORREF(colors[DARK_GRAY]));
@@ -204,11 +285,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (game_over){
                 DrawGameOverScreen(backHDC);
             }
+            else if (game_won){
+                DrawGameWonScreen(backHDC);
+            }
             else{
                 WinEasyDrawCircle(backHDC, colors[GREEN], ball.pos.x, ball.pos.y, ball.radius);
 
                 for (int i = 0; i < MAX_BRICKS; i++){
                     if (!bricks[i].broken){
+                        possible_win = 0;
                         WinEasyDrawRect(backHDC, colors[RED], bricks[i].rect);
                     }
                 }
@@ -223,6 +308,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 WinEasyDrawText(backHDC, colors[WHITE],scoreText, WIDTH, 0);
             }
 
+            game_won = possible_win;
             WinEasyCopyBackBuffer(frontHDC, backHDC, windowRect);
             WinEasyEndBackBuffer(ps, hwnd, backHDC, backBuffer);
             InvalidateRect(hwnd, &(RECT){windowRect.top, windowRect.left, windowRect.right, windowRect.bottom}, FALSE);
